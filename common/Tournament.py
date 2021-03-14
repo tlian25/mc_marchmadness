@@ -2,6 +2,7 @@ from common.Team import Team
 import random
 import math
 import pandas as pd
+import copy
 
 
 
@@ -16,6 +17,8 @@ class Tournament:
         # Dictionaries for rounds
         self._current_round = 1
         self._bracket = self.init_bracket(32)
+        # Base bracket to reset to without needing to assign teams again
+        self._base_bracket = None
         
         
     # Initiate an empty dictionary to represent brackets
@@ -60,7 +63,8 @@ class Tournament:
             self.set_team("R01", f"G{str(game_num).zfill(2)}", 
                           f"T{team_num}", t)
         
-        
+        # Set deep copy of bracket to base_bracket
+        self._base_bracket = copy.deepcopy(self._bracket)
         
         
         
@@ -143,10 +147,17 @@ class Tournament:
             
             
             
+    def get_winner(self, round_name, game_name):
+        
+        return self._bracket[round_name][game_name]['Winner']
             
+            
+            
+    # Reset bracket to base bracket.
+    # Teams and weights set but no games simulated
     def reset(self):
         self._current_round = 1
-        self._bracket = self.init_bracket(32)
+        self._bracket = copy.deepcopy(self._base_bracket)
         
         
         
