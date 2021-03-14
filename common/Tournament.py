@@ -3,6 +3,7 @@ import random
 import math
 import pandas as pd
 import copy
+from collections import OrderedDict
 
 
 
@@ -13,24 +14,26 @@ Tournament class
 
 
 class Tournament:
-    def __init__(self):
+    def __init__(self, team_count=64, teams_csv=None):
         # Dictionaries for rounds
         self._current_round = 1
-        self._bracket = self.init_bracket(32)
+        self._bracket = self.init_bracket(team_count / 2)
         # Base bracket to reset to without needing to assign teams again
         self._base_bracket = None
+        if teams_csv is not None:
+            self.set_teams_from_csv(teams_csv)
         
         
     # Initiate an empty dictionary to represent brackets
     def init_bracket(self, num_games):
-        bracket = {}
+        bracket = OrderedDict()
         round_num = 1 
         while num_games >= 1:
             round_name = f'R{str(round_num).zfill(2)}'
-            bracket[round_name] = {}
+            bracket[round_name] = OrderedDict()
             for n in range(int(num_games)):
-                bracket[round_name][f'G{str(n+1).zfill(2)}'] = {"T1": None, "T2": None,
-                                                  "Winner": None, "Loser": None}
+                bracket[round_name][f'G{str(n+1).zfill(2)}'] = OrderedDict([("T1", None), ("T2", None),
+                                                                            ("Winner", None), ("Loser", None)])
         
             num_games /= 2
             round_num += 1
@@ -51,6 +54,7 @@ class Tournament:
     def set_teams_from_csv(self, filename):
         
         teams = pd.read_csv(filename)
+        self._bracket = self.init_bracket(teams.shape[0] / 2)
         for index, row in teams.iterrows():
             game_num = math.ceil(row['Seed'] / 2)
             t = Team(row['Name'], row['Weight'])
@@ -132,24 +136,26 @@ class Tournament:
     
     
     def play_all_games(self):
-        curr_round = 1
         
-        while curr_round <= 6:
+        last_round = list(self._bracket.keys())[-1]
+                
+        for r in self._bracket.keys():
             
-            round_name = f"R{str(curr_round).zfill(2)}"
-            self.play_all_games_round(round_name)
+            self.play_all_games_round(r)
             
-            if curr_round != 6:
-                self.advance_winners_next_round(round_name)
-            
-            curr_round += 1
-            
-            
+            if r != last_round:
+                self.advance_winners_next_round(r)
+                       
             
             
+    # Return winner for a given round and game
     def get_winner(self, round_name, game_name):
-        
         return self._bracket[round_name][game_name]['Winner']
+    
+    
+    # Return winner for the game in the final round`
+    def get_final_winner(self):
+        return self._bracket[list(self._bracket.keys())[-1]]['G01']['Winner']
             
             
             
@@ -175,15 +181,22 @@ class Tournament:
         
     ##### Print Functions ######
      
-    def print_round(self, round_name):
+    def __round_to_str__(self, round_name):
         bracket = self._bracket
-        strr = f'===== ROUND {int(round_name[1:3])} =====\n'
+        
+        games_in_round = len(bracket[round_name].keys())
+        
+        round_name_dict = {64: "ROUND OF 64", 32: "ROUND OF 32", 16: "SWEET SIXTEEN",
+                           8: "ELITE EIGHT", 4: "FINAL FOUR", 2: "SEMIFINALS", 1: "FINALS"}
+        
+        strr = f'============= [{round_name_dict[games_in_round]}] =============\n'
         
         for g in bracket[round_name].keys():
-                strr += f"{g}: {bracket[round_name][g]['T1']}\tvs\t{bracket[round_name][g]['T2']}\t\t"\
+                strr += f"{g}: {bracket[round_name][g]['T1']}".ljust(24) + "\tvs\t" + \
+                        f"{bracket[round_name][g]['T2']}".ljust(24) + "\t" + \
                         f"WINNER: {bracket[round_name][g]['Winner']}\n"
     
-        print(strr)
+        return strr + '\n'
     
     
     
@@ -197,11 +210,7 @@ class Tournament:
         strr = ''
         
         for rd in bracket.keys():
-            strr += f"===== ROUND {rd[1:3]} =====\n"
-            
-            for g in bracket[rd].keys():
-                strr += f"{g}: {bracket[rd][g]['T1']}\tvs\t{bracket[rd][g]['T2']}\t" \
-                        f"WINNER: {bracket[rd][g]['Winner']}\n"
+            strr += self.__round_to_str__(rd)
             
         return strr
             

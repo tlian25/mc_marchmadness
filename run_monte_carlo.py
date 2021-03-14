@@ -23,11 +23,9 @@ def run_monte_carlo(num_sims, teams_csv_filename):
     
     time.sleep(0.3)
     
-    # Create tournament
-    tmn = Tournament()
+    # Create tournament with teams from CSV file
+    tmn = Tournament(teams_csv = teams_csv_filename)
     
-    # Set teams from CSV file
-    tmn.set_teams_from_csv(teams_csv_filename)
     teams = pd.read_csv(teams_csv_filename)
     
     # List to hold winner of each simulation
@@ -37,13 +35,16 @@ def run_monte_carlo(num_sims, teams_csv_filename):
     for i in tqdm(range(num_sims)):
         tmn.reset()
         tmn.play_all_games()
-        winner = tmn.get_winner("R06", "G01")
+        winner = tmn.get_final_winner()
         winner_list.append(winner.name())
     
     # Count wins
     winners = pd.DataFrame(pd.Series(winner_list).value_counts()).reset_index()
     winners.columns = ['Name', 'Wins']
     winners['Win%'] = round(winners['Wins'] / num_sims * 100, 3)
+    
+    time.sleep(0.3)
+    
 
     # Merge with teams
     m = teams.merge(winners, on = 'Name')
